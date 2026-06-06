@@ -1,0 +1,126 @@
+import openmc
+#-------------------------------- DEFINISI MATERIAL --------------------------------------------------------------------
+#Definisikan LiF
+LiF = openmc.Material(name='LiF')
+LiF.add_element('Li', 1.0)
+LiF.add_element('F', 1.0)
+LiF.set_density('g/cm3', 2.563)
+LiF.temperature = 973
+#Definisikan NaF
+NaF = openmc.Material(name='NaF')
+NaF.add_element('Na', 1.0)
+NaF.add_element('F', 1.0)
+NaF.set_density('g/cm3', 1.95)
+NaF.temperature = 973
+#Definisikan KF
+KF = openmc.Material(name='KF')
+KF.add_element('K', 1.0)
+KF.add_element('F', 1.0)
+KF.set_density('g/cm3', 1.98)
+KF.temperature = 973
+#Mix garam FliNaK
+FLiNaK = openmc.Material.mix_materials([LiF, NaF, KF], [0.465, 0.115, 0.420], 'ao')
+#Definisikan Uranium
+UF4 = openmc.Material(name='UF4')
+UF4.add_nuclide('U235', 0.1)
+UF4.add_nuclide('U238', 0.9)
+UF4.add_element('F', 4.0)
+UF4.set_density('g/cm3', 6.5)
+UF4.temperature = 973
+#Definisikan Fuel
+fuel_material = openmc.Material.mix_materials([FLiNaK, UF4], [0.7144, 0.2856], 'wo')
+fuel_material.temperature = 973 
+
+#Definsikan grafit
+grafit_material = openmc.Material(name='grafit')
+grafit_material.add_element('C', 1.0)
+grafit_material.set_density('g/cm3', 1.86)
+grafit_material.temperature = 973
+
+#bound to xml
+bound = openmc.Materials([fuel_material, grafit_material])
+bound.export_to_xml()
+
+#-------------------------------- DEFINISI GEOMETRI --------------------------------------------------------------------
+#Definisikan Plane
+z_atas = openmc.ZPlane(75, boundary_type='vacuum')
+z_bawah = openmc.ZPlane(-75, boundary_type='vacuum')
+
+#Definisikan Bone
+cylinder = openmc.ZCylinder(r=3)
+hexprism = openmc.model.HexagonalPrism(edge_length=17.3205, boundary_type='reflective')
+
+#Definisikan Region
+fuel_region = -cylinder & -z_atas & +z_bawah
+grafit_region = -hexprism & +cylinder & -z_atas & +z_bawah
+
+#Definisikan Cell
+fuel_cell = openmc.Cell(name='fuel cell')
+fuel_cell.fill = fuel_material
+fuel_cell.region = fuel_region
+
+grafit_cell = openmc.Cell(name='grafit cell')
+grafit_cell.fill = grafit_material
+grafit_cell.region = grafit_region
+
+#Definisikan geometry
+geometry = openmc.Geometry([
+    fuel_cell,
+    grafit_cell
+])
+geometry.export_to_xml()
+
+#------------------------------------------ PLOT ---------------------------------------
+#Atur warna material
+warna ={
+    fuel_material: 'yellow',
+    grafit_material : 'black'
+}
+
+#Plot 1
+plot1 = openmc.Plot()
+plot1.basis = 'xz'
+plot1.origin = (0,0,0)
+plot1.width = (200,200)
+plot1.pixels = (500,500)
+plot1.color_by = 'material' #warna
+plot1.colors = warna
+
+#Plot 2
+plot2 = openmc.Plot()
+plot2.basis = 'xy'
+plot2.origin = (0,0,0)
+plot2.width = (50,50)
+plot2.pixels = (500,500)
+plot2.color_by = 'material' #warna
+plot2.colors = warna
+
+#Plot 3
+plot3 = openmc.Plot()
+plot3.basis = 'xy'
+plot3.origin = (0,0,65)
+plot3.width = (50,50)
+plot3.pixels = (500,500)
+plot3.color_by = 'material' #warna
+plot3.colors = warna
+
+#Plot 4
+plot4 = openmc.Plot()
+plot4.basis = 'xy'
+plot4.origin = (0,0,-65)
+plot4.width = (50,50)
+plot4.pixels = (500,500)
+plot4.color_by = 'material' #warna
+plot4.colors = warna
+
+#export plot
+plots = openmc.Plots([
+    plot1,
+    plot2,
+    plot3,
+    plot4
+])
+plots.export_to_xml()
+openmc.plot_geometry()
+
+#------------------------------------------ PIN SELESAI --------------------------------
